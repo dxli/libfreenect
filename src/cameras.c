@@ -999,11 +999,28 @@ int freenect_start_depth(freenect_device *dev)
 			break;
 	}
 	write_register(dev, 0x13, 0x01);
-	write_register(dev, 0x14, 0x1e);
+    write_register(dev, 0x14, 0x1e);
+
 	write_register(dev, 0x06, 0x02); // start depth stream
 	write_register(dev, 0x17, 0x00); // disable depth hflip
 
 	dev->depth.running = 1;
+
+//#ifdef NEAR_MODE
+//    //near mode
+//    write_register(dev, 0x15, 0x1e); //register not determined
+//    usleep(100000); //sleep 0.1 seconds
+//    write_register(dev, 0x2ef, 0x190); //near mode: register 2EF set to 190
+//#else
+//    //far mode, doesn't work yet
+//    //need to restore the camera to near mode
+//    write_register(dev, 0x15, 0x7); //register not determined
+//    usleep(100000); //sleep 0.1 seconds
+//    //far mode doesn't work yet for me, after being set to near mode once, the camera stays so
+//    write_register(dev, 0x2ef, 0x0); //far mode: register 2EF set to 0
+//#endif
+//    usleep(100000);
+
 	return 0;
 }
 
