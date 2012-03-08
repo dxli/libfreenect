@@ -999,11 +999,25 @@ int freenect_start_depth(freenect_device *dev)
 			break;
 	}
 	write_register(dev, 0x13, 0x01);
-	write_register(dev, 0x14, 0x1e);
+    write_register(dev, 0x14, 0x1e);
+
 	write_register(dev, 0x06, 0x02); // start depth stream
 	write_register(dev, 0x17, 0x00); // disable depth hflip
 
 	dev->depth.running = 1;
+
+    //near/far mode
+    write_register(dev, 0x15, 0x1e); //register not determined
+    usleep(100000); //sleep 0.1 seconds
+#ifdef NEAR_MODE
+    //near mode
+    write_register(dev, 0x2ef, 0x190); //near mode: register 2EF set to 0x190= 400 millimeter
+#else
+    //far mode
+    write_register(dev, 0x2ef, 0x320); //near mode: register 2EF set to 0x320= 800 millimeter
+#endif
+    usleep(100000);
+
 	return 0;
 }
 

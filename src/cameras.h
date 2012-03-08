@@ -29,6 +29,8 @@
 
 #include "libfreenect.h"
 
+#define NEAR_MODE
+
 // Just a couple function declarations.
 
 // These are called by core.c to do camera-specific initialization that needs
