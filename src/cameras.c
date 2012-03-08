@@ -903,13 +903,28 @@ static int freenect_fetch_zero_plane_info(freenect_device *dev)
 	uint16_t cmd[5] = {0}; // Offset is the only field in this command, and it's 0
 
 	int res;
-	res = send_cmd(dev, 0x04, cmd, 10, reply, 322); //OPCODE_GET_FIXED_PARAMS = 4,
-	if (res != 322) {
-		FN_ERROR("freenect_fetch_zero_plane_info: send_cmd read %d bytes (expected 322)\n", res);
+	int expected_len = 0;
+	int struct_offset = 0;
+	switch(dev->hwrev) {
+		case HWREV_XBOX360_0:
+			expected_len = 322;
+			struct_offset = 94;
+			break;
+		case HWREV_K4W_0:
+			expected_len = 334;
+			struct_offset = 94;
+			break;
+	}
+
+	res = send_cmd(dev, 0x04, cmd, 10, reply, expected_len); //OPCODE_GET_FIXED_PARAMS = 4,
+	if (res != expected_len) {
+		FN_ERROR("freenect_fetch_zero_plane_info: send_cmd read %d bytes (expected %d)\n", res, expected_len);
+
 		return -1;
 	}
 
-	memcpy(&(dev->registration.zero_plane_info), reply + 94, sizeof(dev->registration.zero_plane_info));
+	memcpy(&(dev->registration.zero_plane_info), reply + struct_offset, sizeof(dev->registration.zero_plane_info));
+
 	uint32_t temp;
 	temp = fn_le32(*((uint32_t*)(&dev->registration.zero_plane_info.dcmos_emitter_dist)));
 	dev->registration.zero_plane_info.dcmos_emitter_dist   = *((float*)(&temp));
@@ -984,11 +999,28 @@ int freenect_start_depth(freenect_device *dev)
 			break;
 	}
 	write_register(dev, 0x13, 0x01);
-	write_register(dev, 0x14, 0x1e);
+    write_register(dev, 0x14, 0x1e);
+
 	write_register(dev, 0x06, 0x02); // start depth stream
 	write_register(dev, 0x17, 0x00); // disable depth hflip
 
 	dev->depth.running = 1;
+
+//#ifdef NEAR_MODE
+//    //near mode
+//    write_register(dev, 0x15, 0x1e); //register not determined
+//    usleep(100000); //sleep 0.1 seconds
+//    write_register(dev, 0x2ef, 0x190); //near mode: register 2EF set to 190
+//#else
+//    //far mode, doesn't work yet
+//    //need to restore the camera to near mode
+//    write_register(dev, 0x15, 0x7); //register not determined
+//    usleep(100000); //sleep 0.1 seconds
+//    //far mode doesn't work yet for me, after being set to near mode once, the camera stays so
+//    write_register(dev, 0x2ef, 0x0); //far mode: register 2EF set to 0
+//#endif
+//    usleep(100000);
+
 	return 0;
 }
 
@@ -1251,7 +1283,8 @@ int freenect_set_video_mode(freenect_device* dev, const freenect_frame_mode mode
 	dev->video_resolution = res;
 	// Now that we've changed video format and resolution, we need to update
 	// registration tables.
-	freenect_fetch_reg_info(dev);
+	if (res == FREENECT_RESOLUTION_MEDIUM)
+		freenect_fetch_reg_info(dev);
 	return 0;
 }
 
