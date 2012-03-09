@@ -979,11 +979,24 @@ int freenect_start_depth(freenect_device *dev)
 	}
 
 	res = fnusb_start_iso(&dev->usb_cam, &dev->depth_isoc, depth_process, 0x82, NUM_XFERS, PKTS_PER_XFER, DEPTH_PKTBUF);
-	if (res < 0)
-		return res;
+    if (res < 0)
+        return res;
 
-	write_register(dev, 0x105, 0x00); // Disable auto-cycle of projector
-	write_register(dev, 0x06, 0x00); // reset depth stream
+    write_register(dev, 0x105, 0x00); // Disable auto-cycle of projector
+    write_register(dev, 0x06, 0x00); // reset depth stream
+
+    //near/far mode
+    write_register(dev, 0x15, 0x1e); //register not determined
+    usleep(101000); //sleep 0.1 seconds
+#ifdef NEAR_MODE
+    //near mode
+    write_register(dev, 0x2ef, 0x190); //near mode: register 2EF set to 0x190= 400 millimeter
+#else
+    //far mode
+    write_register(dev, 0x2ef, 0x320); //near mode: register 2EF set to 0x320= 800 millimeter
+#endif
+    usleep(101000);
+
 	switch (dev->depth_format) {
 		case FREENECT_DEPTH_11BIT:
 		case FREENECT_DEPTH_11BIT_PACKED:
@@ -1006,17 +1019,7 @@ int freenect_start_depth(freenect_device *dev)
 
 	dev->depth.running = 1;
 
-    //near/far mode
-    write_register(dev, 0x15, 0x1e); //register not determined
-    usleep(100000); //sleep 0.1 seconds
-#ifdef NEAR_MODE
-    //near mode
-    write_register(dev, 0x2ef, 0x190); //near mode: register 2EF set to 0x190= 400 millimeter
-#else
-    //far mode
-    write_register(dev, 0x2ef, 0x320); //near mode: register 2EF set to 0x320= 800 millimeter
-#endif
-    usleep(100000);
+
 
 	return 0;
 }
